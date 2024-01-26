@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.0/dist/leaflet.css" />
+    <link rel="stylesheet" href="leaflet-search-master/leaflet-search-master/src/leaflet-search.css" />
+    <script src="https://unpkg.com/leaflet@1.3.0/dist/leaflet.js"></script>
+    <script src="leaflet-search-master/leaflet-search-master/src/leaflet-search.js"></script>
+
+    <style>
+        #map { width: 100%; height: 900px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="region_sur_volumen.js"></script>
+    <script src="region_norte_volumen.js"></script>
+
+    <script>
+        var dataSur = cobersur;
+        var dataNorte = cobernor;
+
+        var map = new L.Map('map', { zoom: 8, center: new L.latLng([19.9473, -99.10445]) });
+
+        map.addLayer(new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'));
+
+        var featuresLayerSur = new L.GeoJSON(dataSur, {
+            style: function (feature) {
+                return { color: feature.properties.color}; //recuerda que aqui se ponen los atributos de color checa la diferencia con el que tiene tematizado por un color
+            },
+            onEachFeature: function (feature, marker) {
+                var popupContent = '<h4 style="color:' + feature.properties.color + '">' +
+                    'station code: ' + feature.properties.station_code + '</h4>' +
+                    'volumen: ' + feature.properties.volumen_int + '</h4>' + ' ' +
+                    'zonificacion: ' + feature.properties.zonificacion;
+                marker.bindPopup(popupContent);
+            }
+        });
+
+        var featuresLayerNorte = new L.GeoJSON(dataNorte, {
+            style: function (feature) {
+                return { color: feature.properties.color};
+            },
+            onEachFeature: function (feature, marker) {
+                var popupContent = '<h4 style="color:' + feature.properties.color + '">' +
+                    'station code: ' + feature.properties.station_code + '</h4>' +
+                    'promedio: ' + feature.properties.promedio + '</h4>' + ' ' +
+                    'zonificacion: ' + feature.properties.zonificacion;
+                marker.bindPopup(popupContent);
+            }
+        });
+
+        var baseMaps = {
+            "Mapa Base": new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+        };
+
+        var overlayMaps = {
+            "Región Sur": featuresLayerSur,
+            "Región Norte": featuresLayerNorte
+        };
+
+        L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+        var searchControl = new L.Control.Search({
+            layer: featuresLayerSur,
+            propertyName: 'zonificacion',
+            marker: false,
+            moveToLocation: function (latlng, title, map) {
+                var zoom = map.getBoundsZoom(latlng.layer.getBounds());
+                map.setView(latlng, zoom);
+            }
+        });
+
+        searchControl.on('search:locationfound', function (e) {
+            e.layer.setStyle({ fillColor: '#60DE1D', color: '#60DE1D' });
+            if (e.layer._popup)
+                e.layer.openPopup();
+        }).on('search:collapsed', function (e) {
+            featuresLayerSur.eachLayer(function (layer) {
+                featuresLayerSur.resetStyle(layer);
+            });
+        });
+
+        map.addControl(searchControl);
+
+        //a partir de aqui intento de codigo para controlar el buscador de la segunda capa 
+        var searchControl2 = new L.Control.Search({
+            layer: featuresLayerNorte,
+            propertyName: 'zonificacion',
+            marker: false,
+            moveToLocation: function (latlng, title, map) {
+                var zoom = map.getBoundsZoom(latlng.layer.getBounds());
+                map.setView(latlng, zoom);
+            }
+        });
+
+        searchControl2.on('search:locationfound', function (e) {
+            e.layer.setStyle({ fillColor: '#9D160B', color: '#60DE1D' });
+            if (e.layer._popup)
+                e.layer.openPopup();
+        }).on('search:collapsed', function (e) {
+            featuresLayerNorte.eachLayer(function (layer) {
+                featuresLayerNorte.resetStyle(layer);
+            });
+        });
+
+        map.addControl(searchControl2);
+
+        //aqui termina el codigo para controlar la segunda capa 
+    
+    </script>
+</body>
+</html>
